@@ -577,6 +577,42 @@ class ParaViewManager:
             self.logger.error(f"Error toggling volume rendering: {str(e)}")
             return False, f"Error toggling volume rendering: {str(e)}", None
 
+    def toggle_visibility(self, enable=True):
+        """
+        Toggle visibility for the current source.
+        
+        Args:
+            enable (bool): Whether to enable (True) or disable (False) visibility of the current source.
+                          If True, shows the current source.
+                          If False, hides the current source.
+        
+        Returns:
+            tuple: (success, message, source_name)
+        """
+        try:
+            from paraview.simple import GetActiveView, SetActiveSource, GetDisplayProperties
+
+            if not GetActiveSource():
+                return False, "Error: No data selected. Load data first.", None
+
+            view = GetActiveView()
+            display = GetDisplayProperties(GetActiveSource(), view)
+            
+            if enable:
+                display.Visibility = 1
+                status_message = "Element was made visibile"
+            else:
+                display.Visibility = 0
+                status_message = "Rendering hidden (representation preserved)"
+
+            # Get the source name using the helper function
+            source_name = self._get_source_name(GetActiveSource())
+
+            return True, status_message, source_name
+
+        except Exception as e:
+            self.logger.error(f"Error toggling visibility: {str(e)}")
+            return False, f"Error toggling visibility: {str(e)}", None
     
     def color_by(self, field, component=-1):
         """
