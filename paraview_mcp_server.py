@@ -176,6 +176,28 @@ def toggle_volume_rendering(enable: bool = True) -> str:
         return message
 
 @mcp.tool()
+def toggle_visibility(enable: bool = True) -> str:
+    """
+    Toggle the visibility for the active source.
+    
+    Args:
+        enable (bool): Whether to show (True) or hide (False) the active source.
+                      If True, makes the active source visible.
+                      If False, hides the active source but preserves the representation settings.
+    
+    Returns:
+        Status message
+    """
+       
+    success, message, source_name = pv_manager.toggle_visibility(enable)
+    if success:
+        # Return a user-friendly message that also includes the name
+        return f"{message}. Source registered as '{source_name}'."
+    else:
+        return message
+
+
+@mcp.tool()
 def set_active_source(name: str) -> str:
     """
     Set the active pipeline object by its name.
@@ -455,6 +477,7 @@ def list_commands() -> str:
         "create_isosurface: Create an isosurface visualization",
         "create_slice: Create a slice through the data",
         "toggle_volume_rendering: Enable or disable volume rendering",
+	"toggle_visibility: Enable or disable visibility for the active source",
         "set_active_source: Set the active pipeline object by name",
         "get_active_source_names_by_type: Get a list of sources filtered by type",
         "color_by: Color the visualization by a field",
