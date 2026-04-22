@@ -2,8 +2,8 @@
 
 ParaView-MCP is an autonomous agent that integrates multimodal large language models with ParaView through the Model Context Protocol, enabling users to create and manipulate scientific visualizations using natural language and visual inputs instead of complex commands or GUI operations. The system features visual feedback capabilities that allow it to observe the viewport and iteratively refine visualizations, making advanced visualization accessible to non-experts while augmenting expert workflows with intelligent automation.
 
-## Disclaimer: 
-the current implementation (for both main and dev branch) of the connection between MCP server and paraview relies on synchronization between pvserver and paraview as a client, which is a depricated feature in most recent paraview versions. So there maybe issue regarding Paraview app view displaying content of the pvserver instance and general stability issue. 
+## Disclaimer 
+The current implementation of the connection between the MCP server and ParaView, in both the main and dev branches, relies on synchronization between pvserver and the ParaView client. Because this feature has been deprecated in most recent ParaView versions, the ParaView application view may not display content from the pvserver instance correctly, and overall stability issues may occur.
 
 ## Video Demo
 
