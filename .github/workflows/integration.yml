@@ -36,8 +36,16 @@ jobs:
       - name: Install paraview-mcp (uv-managed venv, separate from the micromamba paraview env)
         run: uv sync --extra dev
 
+      - name: Install Xvfb
+        # GH Actions runners have no X server and no GPU; ParaView's
+        # off-screen EGL/Mesa fallback crashes the pvpython process
+        # outright when it tries to render (get_screenshot), taking the
+        # whole standalone bridge down with it. A virtual X server via
+        # GLX is the well-established fix for headless VTK/ParaView CI.
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
       - name: Run integration tests
         shell: micromamba-shell {0}
         run: |
           export PARAVIEW_MCP_PVPYTHON="$(which pvpython)"
-          uv run pytest tests/integration -v
+          xvfb-run -a uv run pytest tests/integration -v
