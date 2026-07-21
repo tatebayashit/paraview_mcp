@@ -65,7 +65,8 @@ async def test_execute_python_creates_sphere_and_reports_point_count(standalone_
 async def test_get_screenshot_returns_valid_jpeg_of_expected_size(standalone_bridge):
     result = await _call(standalone_bridge, "get_screenshot", {"max_width": 400})
     assert not result.isError, result.content
-    image_block = next(b for b in result.content if b.type == "image")
+    image_block = next((b for b in result.content if b.type == "image"), None)
+    assert image_block is not None, result.content
     assert image_block.mimeType == "image/jpeg"
     raw = base64.b64decode(image_block.data)
     assert raw[:2] == b"\xff\xd8"  # JPEG SOI marker -- "valid JPEG", not pixel comparison (DESIGN.md 11-2)
@@ -80,7 +81,7 @@ async def test_get_state_arrays_matches_execute_python_pipeline(standalone_bridg
     })
     result = await _call(standalone_bridge, "get_state", {"detail": "arrays"})
     value = _structured(result)
-    assert value["ok"] is True
+    assert value["ok"] is True, value
     assert value["detail"] == "arrays"
     sphere_arrays = value["arrays"]["Sphere1"]
     names = {a["name"] for a in sphere_arrays["point_arrays"]}
@@ -93,6 +94,7 @@ async def test_get_state_full_includes_bounds_and_properties(standalone_bridge):
     })
     result = await _call(standalone_bridge, "get_state", {"detail": "full"})
     value = _structured(result)
+    assert value["ok"] is True, value
     sphere = value["full"]["Sphere1"]
     assert sphere["n_points"] == 50
     assert sphere["properties"]["Radius"] == 3.0
@@ -103,7 +105,7 @@ async def test_reset_session_clears_pipeline_end_to_end(standalone_bridge):
     await _call(standalone_bridge, "execute_python", {"code": "Sphere(); Cone()", "render": False})
     result = await _call(standalone_bridge, "reset_session")
     value = _structured(result)
-    assert value["ok"] is True
+    assert value["ok"] is True, value
     assert value["deleted_sources"]  # non-empty: at least Sphere/Cone just created
     assert value["namespace_cleared"] is True
     assert value["state"]["sources"] == []
