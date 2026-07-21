@@ -218,6 +218,7 @@ class FakeBridgeServer:
         self.received = []
         self.connections = 0
         self.handler = self._default_handler
+        self._writers = set()
 
     async def start(self, port=0):
         self._server = await asyncio.start_server(self._handle_client, self.host, port)
@@ -227,11 +228,19 @@ class FakeBridgeServer:
     async def stop(self):
         if self._server is not None:
             self._server.close()
+            # Python 3.12+ changed wait_closed() to also wait for every
+            # connection this server accepted to finish, not just the
+            # listening socket. Tests that stop() while a client is still
+            # connected (e.g. the reconnect test) would deadlock forever
+            # without this: nothing else is going to close that writer.
+            for writer in list(self._writers):
+                writer.close()
             await self._server.wait_closed()
             self._server = None
 
     async def _handle_client(self, reader, writer):
         self.connections += 1
+        self._writers.add(writer)
         try:
             while True:
                 line = await reader.readline()
@@ -246,6 +255,7 @@ class FakeBridgeServer:
         except (ConnectionError, OSError):
             pass
         finally:
+            self._writers.discard(writer)
             try:
                 writer.close()
             except Exception:
