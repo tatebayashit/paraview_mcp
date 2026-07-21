@@ -71,8 +71,8 @@ Windows の Claude Desktop から WSL 内のサーバーを使う場合は「WSL
 | `execute_python(code, timeout_s=120, render=True)` | ParaView 内で Python コードを実行する。`paraview.simple` は import 済み、名前空間は呼び出しをまたいで持続、末尾の式の値が返る(IPython 規約)。毎応答にパイプライン状態の要約(`state`)が付く |
 | `get_screenshot(max_width=1280, quality=80)` | アクティブな RenderView を JPEG で取得する(base64 転送のためファイル共有は不要) |
 | `bridge_status()` | ブリッジ疎通・ParaView バージョン・セッション種別(builtin / client-server)の確認。トラブル時の一次窓口 |
-
-`get_state`(詳細な状態取得)と `reset_session`(パイプライン / 名前空間のリセット)は M2 で追加予定([docs/M2_PLAN.md](docs/M2_PLAN.md))。
+| `get_state(detail="summary"\|"arrays"\|"full")` | パイプラインの状態を取得する。`summary` はソース一覧・アクティブ view・時刻、`arrays` は各ソースの point/cell 配列、`full` はさらに bounds・セル数・代表プロパティを含む |
+| `reset_session(clear_pipeline=True, clear_namespace=True)` | パイプライン(全ソース削除)と実行名前空間をリセットする |
 
 ### 環境変数
 
@@ -128,12 +128,15 @@ GUI を使わず「AI が操作し、人間はスクリーンショットで確�
 
 ```shell
 uv sync
-uv run pytest tests/unit     # 76 件、ParaView 不要
+uv run pytest tests/unit     # 96 件、ParaView 不要
+uv run pytest tests/integration  # 実 pvpython が必要(無ければ自動 skip)
 uv run ruff check bridge/ src/ tests/
 ```
 
 - unit CI: [.github/workflows/unit.yml](.github/workflows/unit.yml)(Python 3.10〜3.12)
-- ロードマップ([docs/DESIGN.md](docs/DESIGN.md) §13): M0 スパイク **完了** → M1 MVP **完了**(2026-07-19)→ M2 堅牢化 **計画済み・実装未着手**([docs/M2_PLAN.md](docs/M2_PLAN.md))→ M3 UX
+- integration CI: [.github/workflows/integration.yml](.github/workflows/integration.yml)(conda-forge ParaView 6.1.1、Xvfb 経由)
+- 手動スモーク: [docs/SMOKE.md](docs/SMOKE.md)
+- ロードマップ([docs/DESIGN.md](docs/DESIGN.md) §13): M0 スパイク **完了** → M1 MVP **完了**(2026-07-19)→ M2 堅牢化 **完了**(2026-07-21、[docs/M2_PLAN.md](docs/M2_PLAN.md))→ M3 UX
 
 ## 上流プロジェクト
 
