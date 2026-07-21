@@ -64,4 +64,4 @@
 
 | 実施日 | ParaView 版数 | 環境 | ①builtin | ②timeout | ③disconnected | ④view閉鎖 | ⑤pvserver | ⑥get_state/reset | 備考 |
 |---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | |
+| 2026-07-21 | 6.0.1 | 実機(WSL2) | PASS | PASS | PASS | PASS | PASS | PASS | ①でスクリーンショット目視確認済み(球が正しく描画)。⑤は Shell 貼り付け起動(マクロ登録は使わず)で `session_type: client-server` を確認。6.1.1 → 6.0.1 へのロールバックは pvserver+マクロ登録セグフォ(M1_PLAN §5 #8)の解消を狙ったものだが効果なし(バージョン非依存と判明)。この既知の制約自体は本記録に影響しない(⑤は文書どおりの回避策で PASS)。 |
