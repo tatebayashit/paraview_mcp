@@ -1,0 +1,41 @@
+# paraview-mcp instructions eval (docs/M3_PLAN.md 3.1). Run from eval/:
+#   see eval/README.md for the full procedure (bridge first, then promptfoo).
+description: "paraview-mcp M3 instructions eval"
+
+prompts:
+  - |
+    You are operating ParaView for a user through the available MCP tools.
+    Follow the server instructions you were given.
+
+    Task: {{question}}
+
+    Use at most 15 tool calls. Verify results with the tools before answering;
+    do not guess. Answer concisely.
+
+providers:
+  - id: file://mcp_eval_client.py
+    label: paraview-mcp-agent
+    config:
+      # model / temperature / max_tool_calls can be overridden here or via
+      # the PARAVIEW_EVAL_MODEL environment variable (E-01).
+      max_tool_calls: 15
+    # promptfoo's Python-worker default timeout (300000ms) is occasionally
+    # too tight for an agentic case that takes many tool-call round trips;
+    # give it headroom (still well under the subprocess-level 900s cap in
+    # mcp_eval_client.py's call_api()).
+    timeout: 600000
+
+defaultTest:
+  options:
+    # Grader for llm-rubric asserts. Same model family as the agent so a
+    # single OPENROUTER_API_KEY covers both (M3_PLAN 1.4 adjustment: the
+    # anthropic default was replaced by OpenRouter per user direction).
+    provider: openrouter:deepseek/deepseek-v4-flash
+
+tests:
+  - file://cases/tool_level.yaml
+  - file://cases/task_level.yaml
+  - file://cases/instructions_level.yaml
+
+evaluateOptions:
+  maxConcurrency: 1

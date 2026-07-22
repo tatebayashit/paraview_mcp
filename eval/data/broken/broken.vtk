@@ -1,0 +1,6 @@
+# vtk DataFile Version 3.0
+corrupted fixture for vtk_messages eval (docs/M3_PLAN.md E-03 L3)
+ASCII
+DATASET POLYDATA
+POINTS 5 float
+0 0 0 1 0 0

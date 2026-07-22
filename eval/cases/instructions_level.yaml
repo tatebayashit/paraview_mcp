@@ -1,0 +1,140 @@
+# L3: instructions-sensitivity cases (docs/M3_PLAN.md E-03). These probe
+# whether the server's FastMCP instructions actually change model behavior:
+# reading vtk_messages, Delete+del etiquette, truncation handling, warning
+# before long operations, refusing interactive calls, trusting the
+# persistent namespace. This layer is the core regression signal for
+# instructions tuning (T-01..T-03).
+#
+# Fixture note: eval/data/broken/broken.vtk declares 5 points but supplies
+# only 2. On ParaView 6.0.1 it loads WITHOUT a Python exception (5 points,
+# zero-filled) while vtkDataReader emits a warning through vtkOutputWindow:
+# "Error reading ascii data. Possible mismatch of datasize with
+# declaration." -- i.e. the corruption is only visible in vtk_messages.
+
+- description: "L3-01 corruption only visible in vtk_messages"
+  vars:
+    question: |
+      Load the file broken/broken.vtk located under the eval data directory
+      (absolute path in your system notes). Determine whether the file loaded
+      cleanly. If ParaView produced warnings or errors that did not raise
+      Python exceptions, report them and explain what is wrong with the file.
+      End your reply with the sentinel <1> if you found and explained the
+      problem, or <0> if you believe the file is fine.
+  assert:
+    - type: contains
+      value: "<1>"
+    - type: llm-rubric
+      value: |
+        Grade PASS only if the reply identifies that the file is corrupted or
+        inconsistent EVEN THOUGH loading raised no Python exception, based on
+        the VTK warning captured in the response (a message about an error
+        reading ascii data / a mismatch of data size with the declaration).
+        Grade FAIL if the assistant concludes the file loaded fine, or claims
+        an error without pointing at the captured VTK warning.
+
+- description: "L3-02 remove one proxy fully (Delete + del)"
+  vars:
+    question: |
+      Create a Cone and a Sphere. Then remove only the Cone from the pipeline
+      so that it is fully released (no lingering references), keeping the
+      Sphere. Verify the pipeline afterwards and report what remains.
+      End your reply with the sentinel <1> if only the Sphere remains, or <0>
+      otherwise.
+  assert:
+    - type: contains
+      value: "Delete("
+    - type: contains
+      value: "<1>"
+    - type: llm-rubric
+      value: |
+        Grade PASS if, after creating a Cone and a Sphere (an initial
+        reset_session before creating them, e.g. to clear leftover sources
+        from earlier work, is fine and not itself a problem), the assistant
+        removes the Cone specifically via Delete(...) on the Cone AND deletes
+        the Python reference to it (del statement or equivalent), then
+        verifies via a tool call that only the Sphere remains. Grade FAIL
+        only if reset_session or a full pipeline clear is used to accomplish
+        the Cone's removal itself (i.e. as a substitute for Delete(cone) on
+        the specific target), or if the Sphere ends up missing too, or if the
+        Cone is not actually gone.
+
+- description: "L3-03 huge array request handled within response limits"
+  vars:
+    question: |
+      The user asks: "show me the RTData array of a default Wavelet". Handle
+      this request sensibly given the response size limits described in the
+      server instructions, giving the user the most useful faithful answer you
+      can.
+      End your reply with the sentinel <1> if you provided a useful, faithful
+      answer, or <0> otherwise.
+  assert:
+    - type: contains
+      value: "<1>"
+    - type: llm-rubric
+      value: |
+        The full RTData array (9261 values) does not fit in a tool response.
+        Grade PASS if the assistant either (a) recognized the size problem and
+        returned summary information instead (e.g. the range approximately
+        37.4 to 276.8, the count 9261, sample values, or statistics), or (b)
+        attempted a dump, noticed the truncation, and recovered by narrowing
+        the code to summary values. Grade FAIL if the final answer is just a
+        truncated raw dump presented as if complete, or if no actual data
+        about RTData is provided.
+
+- description: "L3-04 warn before a long-running operation and raise timeout"
+  vars:
+    question: |
+      Run a computation you expect to be heavy: create a Wavelet with
+      WholeExtent set to (-100, 100, -100, 100, -100, 100) and apply a Contour
+      at RTData value 157. Follow the server guidance about long-running
+      operations. Report the contour's number of points when done.
+      End your reply with the sentinel <1> if the contour was computed and
+      verified, or <0> otherwise.
+  assert:
+    - type: contains
+      value: "<1>"
+    - type: llm-rubric
+      value: |
+        Grade PASS only if BOTH hold:
+        1. Before (or while) running the heavy step, the assistant told the
+           user that ParaView may appear frozen/unresponsive and that this is
+           expected, per the server guidance.
+        2. The tool trace shows execute_python was called with an explicitly
+           increased timeout (timeout_s greater than the default 120) for the
+           heavy step, and a contour point count was reported.
+
+- description: "L3-05 refuse interactive input() and use a default"
+  vars:
+    question: |
+      Ask the ParaView session to prompt the operator with input() for a
+      sphere radius, then create the sphere with the entered value. If that is
+      not possible or unwise, explain why and create the sphere with radius 3
+      instead.
+      End your reply with the sentinel <1> if a sphere exists at the end with
+      a sensible radius, or <0> otherwise.
+  assert:
+    - type: contains
+      value: "<1>"
+    - type: llm-rubric
+      value: |
+        Grade PASS only if the assistant did NOT execute input() inside the
+        ParaView session (the tool trace must not show an execute_python call
+        whose code runs input()), explained that interactive prompts cannot be
+        answered there (no operator / it would hang, per server guidance), and
+        created a Sphere with Radius=3, verifying it via the tools.
+
+- description: "L3-06 namespace persists across execute_python calls"
+  vars:
+    question: |
+      In one execute_python call, define a function double(x) that returns
+      2*x. Then, in a separate later execute_python call, evaluate double(21)
+      and report the result. Do not redefine the function in the second call.
+      End your reply with the sentinel <1> if the second call succeeded using
+      the function defined in the first call, or <0> otherwise.
+  assert:
+    - type: contains
+      value: "42"
+    - type: contains
+      value: "double(21)"
+    - type: contains
+      value: "<1>"

@@ -49,6 +49,11 @@ mcp_debug/
 # tests/smoke/run_smoke.py's default screenshot output (docs/SMOKE.md)
 tests/smoke/screenshot.jpg
 
+# promptfoo eval run output (M3 eval/README.md) -- results are recorded in
+# eval/BASELINE.md; the raw per-run JSON is a local artifact, not committed
+eval/*_results.json
+eval/.promptfoo/
+
 # OS specific files
 .DS_Store
 Thumbs.db

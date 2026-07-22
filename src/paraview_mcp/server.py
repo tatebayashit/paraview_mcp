@@ -30,8 +30,9 @@ instance) by sending Python code strings to execute inside it. Guidelines:
   a proxy alive as long as a Python reference to it exists).
 - Heavy operations (large datasets, expensive filters) block the ParaView
   GUI until they finish -- this is expected, not a bug. Warn the user
-  before running one ("ParaView will look frozen while this runs") and
-  pass a larger timeout_s.
+  before running one ("ParaView will look frozen while this runs") and pass
+  a timeout_s well above the 120s default (e.g. 300-600, more for very
+  large data) -- passing 120 explicitly doesn't actually raise anything.
 - If an execute_python call fails, read both `error` (type/message/
   traceback) and `vtk_messages` -- VTK errors often don't raise Python
   exceptions.
