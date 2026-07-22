@@ -1,6 +1,6 @@
 # M3 要件設計・テスト設計
 
-- Status: E-01〜E-06・T-01〜T-03・A-01〜A-04 完了(2026-07-22)。残るは U-01〜U-03(上流還元判断、ユーザー承認待ち)のみ
+- Status: E-01〜E-06・T-01〜T-03・A-01〜A-04・U-01〜U-03 完了(2026-07-22)。U-02 決定: 還元は行わず独立フォークとして継続(README のクレジット表記のみ)。README_ja.md 全面書き直し・README.md(英語)新規作成も完了。残るはユーザーによる実機最終確認のみ(v1 完了条件)
 - 対応マイルストーン: [DESIGN.md](DESIGN.md) §13 M3(UX)
 - 前提: M2 完了([M2_PLAN.md](M2_PLAN.md)。unit 96 件+integration 12 件 green、SMOKE 全 6 シナリオ PASS)
 - 本書の位置づけ: DESIGN.md が仕様の正。本書は M3 で実施する範囲の確定・要件の実装単位への分解・テスト設計のみを扱い、仕様の詳細は DESIGN.md の節番号で参照する。
@@ -44,7 +44,7 @@ DESIGN §13 は「promptfoo の既存 eval 資産を再利用」とするが、�
 
 1. **eval 実行時のモデル**: 旧設定の `claude-sonnet-4-20250514` は引退間近。既定を `claude-opus-4-8` とし、環境変数(`PARAVIEW_EVAL_MODEL`)で上書き可能にする(コスト優先時は `claude-sonnet-5` を指定)。採点(llm-rubric の grader)も同じ既定に揃える。現行モデルでは `temperature` / `top_p` は送信不可(400)のため provider から削除する。
 2. **eval の被験系は standalone ブリッジ**: 実行対象の ParaView は `pvpython --force-offscreen-rendering` + standalone ブリッジを既定とする(integration と同じ構成。GUI 不要・再現性が高い)。実 GUI に対しても同じ設定で流せることは手動確認に留める。GUI 固有経路(タイマー駆動・Qt)の担保は従来どおり SMOKE の担当(§11-3)であり、eval は「instructions の質」の測定に特化する。
-3. **英語 README は上流還元と連動**: README.md(英語)は M2 期間に意図的に削除され README_ja.md が正となっている(commit `b7e8e02`)。英語 README の再作成は還元判断が「する」になった場合の作業として §7 に置き、単独では行わない。
+3. **英語 README は上流還元と連動**: README.md(英語)は M2 期間に意図的に削除され README_ja.md が正となっている(commit `b7e8e02`)。英語 README の再作成は還元判断が「する」になった場合の作業として §7 に置き、単独では行わない。**→ 2026-07-22 に方針変更(U-03)**: 還元判断(U-02)は「還元しない」で確定したが、外部ユーザー向けの一般公開文書としての価値は還元とは独立にあるとユーザーが判断し、還元とは切り離して英語 README.md を新規作成することにした。README_ja.md が正である位置づけ(pyproject.toml の `readme` フィールドも README_ja.md のまま)は変わらない。
 4. **instructions と実運用手順の不整合を発見**: bridge_client の接続不可ガイダンスは「Macros → paraview_mcp_bridge を実行せよ」だが、pvserver 接続時の正式手順は Python Shell 貼り付け(セグフォ回避、SMOKE SM-01)。ガイダンス文言に pvserver 時の分岐を追記する(T-02 に含む)。
 5. **eval のモデルは OpenRouter / `deepseek/deepseek-v4-flash` に変更**(2026-07-22、ユーザー指示。費用キャップ付きキーを `env/APIkey.env` に用意)。1.4-1 の「anthropic 既定」は破棄し、provider は OpenAI 互換 API(httpx。mcp 経由の推移的依存で venv に既存)で実装。deepseek では `temperature` が有効なため再現性のため 0 を設定する(1.4-1 の temperature 撤去は Anthropic 現行世代固有の事情だった)。
 6. **eval モデルは画像入力不可(text→text)**: スクリーンショットの視覚判定はできない。provider が Pillow で画像を解析し「寸法+非背景ピクセル率」のテキストに置換してモデルへ渡す方式に変更(E-03 L2 の「llm-rubric で画像を採点」は取り止め、検証は数値・state ベースに再設計)。視覚品質の担保は従来どおり SMOKE(§11-3)の担当。
@@ -71,7 +71,8 @@ paraview_mcp/
     M3_PLAN.md                    # 本書
     M3_AUTOSTART.md               # 自動起動の検証手順・結果・判断(A-04)
     DESIGN.md                     # §9.2 / §13 / §14 の M3 結果反映(A-04, U-02)
-  README_ja.md                    # 自動起動に対応する場合の手順追記(A-03)
+  README_ja.md                    # 全面書き直し(ですます調・初心者向け導入手順・自動起動手順・OS対応の見直し)(A-03, U-03)
+  README.md                       # 新規: README_ja.md を元にした英語版(U-03)
 ```
 
 (tests/・bridge/・.github/ は無変更。unit の文言 assert のみ T-02 に追随して更新)
@@ -114,7 +115,7 @@ DESIGN §9.2 の宿題(「`paraview --script=` 等の起動オプションの互
 |---|---|---|
 | U-01 | 上流の現状調査: LLNL/paraview_mcp のコミット・Issue/PR の動向、旧方式(コラボレーション同期)の扱いを確認し、還元の選択肢を整理する: (a) Issue/Discussion で再設計の知見を共有(低コスト・非侵襲) (b) PR(全面差し替えになるため受け入れ可能性は低い見込み) (c) 独立フォークとして継続し README で関係を明記(現状維持) | §13 |
 | U-02 | 判断: U-01 の選択肢+推奨をユーザーに提示し、**ユーザーの承認を得て**決定・実施する(外部公開を伴うため独断で実施しない)。決定と理由を本書 §5 に記録し、DESIGN §13 M3 に反映する | §13 |
-| U-03 | 還元する場合のみ: 英語 README.md の再作成(1.4-3)、LICENSE / NOTICE の最終確認(BSD-3-Clause 維持は S-12 で対応済み) | 1.4-3 |
+| U-03 | 英語 README.md の新規作成(2026-07-22、ユーザー指示。U-02 の還元判断とは独立に、外部ユーザー向けの一般公開文書として作成)。README_ja.md 全面書き直し(ですます調・導入手順の初心者向け改善・Windows/WSL/Linux を対等にサポート対象として明記)を先に行い、それを元に翻訳する。LICENSE / NOTICE の最終確認(BSD-3-Clause 維持は S-12 で対応済み、無変更) | 1.4-3 |
 
 ## 4. テスト設計
 
@@ -135,7 +136,7 @@ M3 の中心的なテストは eval そのもの(E-03/T-01/T-03)である。既�
 | 2 | ベースライン記録 | eval/BASELINE.md に現行 instructions の測定結果が記録されている(T-01) | PASS(2026-07-22)。4 回のフルランを実施・突合。真の content 起因の失敗は L3-04(timeout_s 既定値未提示)のみと特定。他はハーネスバグ(修正済み)/grader(deepseek-v4-flash)側の JSON パース不調/OpenRouter のモデレーション誤検知(L3-01)。詳細: eval/BASELINE.md |
 | 3 | instructions 改稿と回帰 | 改稿後の全体 PASS 率 ≥ ベースライン、狙った L3 ケースの改善を確認。unit・integration green 維持 | PASS(2026-07-22)。改稿後フルラン **15/15(100%)**(ベースライン実質 14/15 を上回る)。狙った L3-04(timeout_s)は FAIL→PASS。unit 96 件・integration 12 件とも green。改稿内容・回帰評価の詳細・回帰評価中に見つけた eval ケース自体のバグ2件(instructions とは無関係)の記録: eval/BASELINE.md |
 | 4 | 自動起動の決定 | A-02 マトリクス実施済み・M3_AUTOSTART.md 記録済み・DESIGN §9.2 が決定内容に更新済み(対応する場合は README 手順も) | PASS(2026-07-22)。A-02 実機検証(ユーザー実施)#1〜#5 全 PASS、特に #4(pvserver 接続済み+`--script`)でセグフォ非再現を確認し 1.2 の最大リスクを解消。決定: `--script=`(位置引数も同様)をブリッジ・サーバー無変更のまま v1 で採用。README_ja.md に手順追記、DESIGN §9.2 を決定内容に更新済み。#6(view 閉鎖後の診断)は自動起動の可否には影響しない申し送り事項として記録(docs/M3_AUTOSTART.md) |
-| 5 | 上流還元の判断記録 | 選択肢と推奨の提示 → ユーザー決定 → 本表と DESIGN §13 に記録(実施作業があれば完了) | 未実施 — U-02 はユーザー承認が前提のため、このセッションのスコープ外 |
+| 5 | 上流還元の判断記録 | 選択肢と推奨の提示 → ユーザー決定 → 本表と DESIGN §13 に記録(実施作業があれば完了) | PASS(2026-07-22)。**決定: 還元(Issue/PR)は行わず、独立フォークとして継続する(U-01 の選択肢 c)。** 理由(ユーザー判断): 接続方式の全面再設計により LLNL 上流とは「MCP で ParaView を操作する」という発想以外ほぼ別物になっており、upstream の活動も低調なため、PR/Issue の投稿コストに見合う反応が見込めない。README(日本語・英語とも)に上流へのリンクとクレジット表記を維持することで対応する(既に README_ja.md に記載済み、README.md にも同様に記載)。LICENSE/NOTICE(BSD-3-Clause)は無変更で維持 |
 | 6 | ブリッジ無変更 | `git diff` で bridge/paraview_mcp_bridge.py に変更が無い | PASS(2026-07-22時点)。T-02 で変更したのは server.py の INSTRUCTIONS と bridge_client.py のガイダンス文言のみ。bridge/ 配下は無変更 |
 
 ## 6. 実装順序
