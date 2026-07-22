@@ -134,8 +134,12 @@ class BridgeClient:
             raise BridgeDisconnectedError(
                 "Lost the connection to the bridge while sending the request. "
                 "It will reconnect automatically on the next call; if that "
-                "also fails, run the paraview_mcp_bridge macro in ParaView "
-                "again."
+                "also fails, restart the bridge in ParaView -- Macros -> "
+                "paraview_mcp_bridge if connected to a builtin session, or "
+                "paste bridge/paraview_mcp_bridge.py into the Python Shell "
+                "instead if connected to a remote server (pvserver): running "
+                "it as a macro on a pvserver connection is known to crash "
+                "ParaView."
             ) from e
 
     async def _read_matching_response(self, req_id):
@@ -192,7 +196,7 @@ class BridgeClient:
         if kind == "protocol_error":
             raise BridgeProtocolError(
                 "Protocol error talking to the bridge (%s). Check that the "
-                "bridge macro and this MCP server are the same paraview_mcp "
+                "bridge and this MCP server are the same paraview_mcp "
                 "version." % error.get("message", "")
             )
 
@@ -214,8 +218,11 @@ class BridgeClient:
                     await asyncio.sleep(RETRY_DELAY_S)
         raise BridgeUnavailableError(
             "Could not reach the paraview-mcp bridge at %s:%d (%s). In "
-            "ParaView, run the paraview_mcp_bridge macro to start it "
-            "(Macros -> paraview_mcp_bridge)." % (self._host, self._port, last_exc)
+            "ParaView, start it: Macros -> paraview_mcp_bridge if connected "
+            "to a builtin session, or paste bridge/paraview_mcp_bridge.py "
+            "into the Python Shell instead if connected to a remote server "
+            "(pvserver) -- running it as a macro on a pvserver connection is "
+            "known to crash ParaView." % (self._host, self._port, last_exc)
         ) from last_exc
 
     def _invalidate_connection(self):

@@ -386,7 +386,7 @@ paraview_mcp/
   - 中止基準(standalone + trame 案 B への転換)には該当せず。M1 へ進んで良い。
 - **M1: MVP(完了、2026-07-19)**(要件・テスト設計・受け入れ記録: [docs/M1_PLAN.md](M1_PLAN.md)) — ブリッジはワイヤプロトコル v1 を完全実装して**以後凍結**(ping/exec/reset、認証、VTK メッセージ捕捉、state 要約、embedded/standalone。再配布 = 手動マクロ差し替えが最も高コストな変更のため)。サーバーは execute_python / get_screenshot / bridge_status と、直列化・タイムアウト・遅延応答破棄・自動再接続を含むクライアント層。手動マクロ起動。unit テスト 76 件+unit CI(Python 3.10〜3.12、ruff)。受け入れ(ParaView 6.1.1 実機 / WSL2): 必須 #1〜7 すべて PASS、#8(任意、pvserver)は ParaView 側起因のセグフォとして切り分け済みの FAIL(上記 M0 の既知の限界・回避策参照)。M0 スパイク(`bridge/spike/`)は計画どおり削除(git 履歴に残存)。
 - **M2: 堅牢化(完了、2026-07-21)**(要件・テスト設計・受け入れ記録: [docs/M2_PLAN.md](M2_PLAN.md)) — get_state / reset_session をサーバー側スニペットのみで追加(ブリッジ無変更を `git diff` で確認)。unit 96 件+integration 12 件(計 108 件)green、ruff clean。integration 実装中に FastMCP の `-> dict`(無引数)アノテーションが `structuredContent` を生成しない既存バグ(execute_python / bridge_status を含む全 4 ツールに影響)を発見・修正。integration CI(実 pvpython + standalone ブリッジ、conda-forge ParaView 6.1.1)は GitHub Actions 上で green を確認(GPU/X server の無い runner でレンダリングが pvpython ごとクラッシュする問題を Xvfb 導入で解消)。unit CI は Python 3.10〜3.12 マトリクスすべて green(3.12 は asyncio の `Server.wait_closed()` 仕様変更に起因するテストヘルパーのデッドロックを修正して解消)。手動スモーク(SMOKE.md 全 6 シナリオ、pvserver 接続を含む)を ParaView 実機(6.0.1、WSL2)で実施し全 PASS。README(セキュリティ注意・WSL 手順含む、2026-07-19 改稿)。
-- **M3: UX** — instructions チューニング(promptfoo の既存 eval 資産を再利用して回帰評価)、自動起動の調査、上流(LLNL)への還元判断。
+- **M3: UX**(要件・計画: [M3_PLAN.md](M3_PLAN.md)) — instructions チューニング(promptfoo の既存 eval 資産を再利用して回帰評価)、自動起動の調査、上流(LLNL)への還元判断。
 
 ## 14. 将来拡張(v1 ではフックのみ)
 

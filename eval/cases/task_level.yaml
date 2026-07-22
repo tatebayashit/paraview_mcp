@@ -1,0 +1,75 @@
+# L2: single visualization tasks (docs/M3_PLAN.md E-03). Ground truth
+# measured on ParaView 6.0.1 (see eval/README.md): default Wavelet has 9261
+# points with RTData range [37.35, 276.83]; disk.ex2 has 8499 points with
+# point arrays ids, AsH3, CH4, GaMe3, H2, Pres, Temp, V.
+
+- description: "L2-01 Wavelet + Contour on RTData, verified via data information"
+  vars:
+    question: |
+      Load the Wavelet source, then create a Contour filter on it for the
+      RTData field at the value 157 and show the contour. Verify it produced
+      geometry. Report (a) the data range of RTData on the Wavelet and (b) the
+      number of points of the contour.
+      End your reply with the sentinel <1> if the contour has more than zero
+      points, or <0> otherwise.
+  assert:
+    - type: contains
+      value: "<1>"
+    - type: llm-rubric
+      value: |
+        Grade PASS only if all of the following hold in the reply (the section
+        after ---TOOL TRACE--- shows what the assistant actually did):
+        1. A Wavelet source and a Contour filter were created through tool calls.
+        2. The reported RTData range is approximately 37.4 to 276.8.
+        3. A concrete, positive contour point count is reported, obtained from
+           the tools (not guessed).
+
+- description: "L2-02 open disk.ex2 and list its point arrays"
+  vars:
+    question: |
+      Open the dataset stream_line/disk.ex2 located under the eval data
+      directory (the absolute path of that directory is given in your system
+      notes). List the names of its point data arrays and report the number of
+      points in the dataset.
+      End your reply with the sentinel <1> if the file was opened and the
+      arrays listed, or <0> otherwise.
+  assert:
+    - type: contains
+      value: "Pres"
+    - type: contains
+      value: "Temp"
+    - type: regex
+      value: "8,?499"  # allow "8499" or thousands-separated "8,499"
+    - type: contains
+      value: "<1>"
+
+- description: "L2-03 hide one source and verify visibility flags"
+  vars:
+    question: |
+      Create a Sphere and a Cone and show both. Then hide only the Cone while
+      keeping it in the pipeline. Verify using the pipeline state that the
+      Sphere is visible and the Cone is not, and report the visibility of each.
+      End your reply with the sentinel <1> if the verified state matches
+      (Sphere visible, Cone hidden but present), or <0> otherwise.
+  assert:
+    - type: contains
+      value: "<1>"
+    - type: llm-rubric
+      value: |
+        Grade PASS only if the reply shows that the assistant verified the
+        pipeline state through a tool call after hiding the Cone, and reports
+        the Sphere as visible and the Cone as present but not visible.
+
+- description: "L2-04 set Wireframe representation and read it back"
+  vars:
+    question: |
+      Create a Sphere, show it, and set its display representation to
+      Wireframe. Then verify by reading the representation property back and
+      report its value.
+      End your reply with the sentinel <1> if the property reads back as
+      Wireframe, or <0> otherwise.
+  assert:
+    - type: contains
+      value: "Wireframe"
+    - type: contains
+      value: "<1>"

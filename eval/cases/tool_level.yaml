@@ -1,0 +1,73 @@
+# L1: tool-level cases (docs/M3_PLAN.md E-03). Deterministic asserts where
+# possible; the provider appends a ---TOOL TRACE--- section to the output,
+# so `contains: "tool_name("` checks that a tool was actually called.
+
+- description: "L1-01 bridge_status reports version and session type"
+  vars:
+    question: |
+      Check the bridge status and report the ParaView version and the session
+      type (builtin or client-server).
+      End your reply with the sentinel <1> if the bridge is connected and you
+      retrieved this information, or <0> if you could not.
+  assert:
+    - type: contains
+      value: "<1>"
+    - type: contains
+      value: "bridge_status("
+
+- description: "L1-02 execute_python returns the value of the last expression"
+  vars:
+    question: |
+      Using ParaView's Python session, compute the sum of the squares of all
+      integers from 0 to 49999 (inclusive) and report the exact value.
+      End your reply with the sentinel <1> if you verified the value came from
+      the ParaView session, or <0> if you could not.
+  assert:
+    - type: contains
+      value: "41665416675000"
+    - type: contains
+      value: "<1>"
+
+- description: "L1-03 get_state reflects created sources"
+  vars:
+    question: |
+      Create a Sphere and a Cone and show both. Then confirm via the pipeline
+      state that both are present, and report the source names as ParaView
+      registered them.
+      End your reply with the sentinel <1> if both sources are confirmed
+      present, or <0> otherwise.
+  assert:
+    - type: icontains
+      value: "sphere"
+    - type: icontains
+      value: "cone"
+    - type: contains
+      value: "<1>"
+
+- description: "L1-04 reset_session empties the pipeline"
+  vars:
+    question: |
+      Create any source, then reset the entire session (both the pipeline and
+      the Python namespace), then verify the pipeline is empty. Report how many
+      sources were deleted and how many remain.
+      End your reply with the sentinel <1> if the pipeline is verified empty
+      after the reset, or <0> otherwise.
+  assert:
+    - type: contains
+      value: "reset_session("
+    - type: contains
+      value: "<1>"
+
+- description: "L1-05 get_screenshot captures a rendered frame"
+  vars:
+    question: |
+      Create a Cone, make sure it is visible in the render view, and take a
+      screenshot. Report the screenshot dimensions and whether anything is
+      actually rendered (non-background content).
+      End your reply with the sentinel <1> if the screenshot shows rendered
+      content, or <0> otherwise.
+  assert:
+    - type: contains
+      value: "get_screenshot("
+    - type: contains
+      value: "<1>"
