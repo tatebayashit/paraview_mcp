@@ -1,6 +1,6 @@
 # M3 要件設計・テスト設計
 
-- Status: Draft(2026-07-22、計画策定)
+- Status: E-01〜E-06・T-01〜T-03・A-01〜A-04 完了(2026-07-22)。残るは U-01〜U-03(上流還元判断、ユーザー承認待ち)のみ
 - 対応マイルストーン: [DESIGN.md](DESIGN.md) §13 M3(UX)
 - 前提: M2 完了([M2_PLAN.md](M2_PLAN.md)。unit 96 件+integration 12 件 green、SMOKE 全 6 シナリオ PASS)
 - 本書の位置づけ: DESIGN.md が仕様の正。本書は M3 で実施する範囲の確定・要件の実装単位への分解・テスト設計のみを扱い、仕様の詳細は DESIGN.md の節番号で参照する。
@@ -134,7 +134,7 @@ M3 の中心的なテストは eval そのもの(E-03/T-01/T-03)である。既�
 | 1 | eval ハーネス完走 | E-03 全ケースがローカルでエラーなく実行され、promptfoo のレポートが得られる(PASS 率は問わない) | PASS(2026-07-22)。15 ケース(L1×5/L2×4/L3×6)構築。初回フルランでハーネス自体のバグ3件(promptfoo 永続ワーカー内での `asyncio.run()` 再利用による subprocess 不安定化/OpenRouter の HTTP200・`choices`欠落/DeepSeek の空回答)を検出・修正し、以後安定動作を確認。詳細: eval/BASELINE.md |
 | 2 | ベースライン記録 | eval/BASELINE.md に現行 instructions の測定結果が記録されている(T-01) | PASS(2026-07-22)。4 回のフルランを実施・突合。真の content 起因の失敗は L3-04(timeout_s 既定値未提示)のみと特定。他はハーネスバグ(修正済み)/grader(deepseek-v4-flash)側の JSON パース不調/OpenRouter のモデレーション誤検知(L3-01)。詳細: eval/BASELINE.md |
 | 3 | instructions 改稿と回帰 | 改稿後の全体 PASS 率 ≥ ベースライン、狙った L3 ケースの改善を確認。unit・integration green 維持 | PASS(2026-07-22)。改稿後フルラン **15/15(100%)**(ベースライン実質 14/15 を上回る)。狙った L3-04(timeout_s)は FAIL→PASS。unit 96 件・integration 12 件とも green。改稿内容・回帰評価の詳細・回帰評価中に見つけた eval ケース自体のバグ2件(instructions とは無関係)の記録: eval/BASELINE.md |
-| 4 | 自動起動の決定 | A-02 マトリクス実施済み・M3_AUTOSTART.md 記録済み・DESIGN §9.2 が決定内容に更新済み(対応する場合は README 手順も) | 一部実施(2026-07-22)。A-01(候補列挙・一次調査)のみ完了、`--script=` を本命候補と判定(docs/M3_AUTOSTART.md)。A-02(実機検証マトリクス)はユーザーの ParaView 実機協力が必要なため未実施 — このセッションのスコープ外(`/goal` の指示は「§6 A-01まで」)。A-03/A-04 は A-02 の結果待ちで未確定 |
+| 4 | 自動起動の決定 | A-02 マトリクス実施済み・M3_AUTOSTART.md 記録済み・DESIGN §9.2 が決定内容に更新済み(対応する場合は README 手順も) | PASS(2026-07-22)。A-02 実機検証(ユーザー実施)#1〜#5 全 PASS、特に #4(pvserver 接続済み+`--script`)でセグフォ非再現を確認し 1.2 の最大リスクを解消。決定: `--script=`(位置引数も同様)をブリッジ・サーバー無変更のまま v1 で採用。README_ja.md に手順追記、DESIGN §9.2 を決定内容に更新済み。#6(view 閉鎖後の診断)は自動起動の可否には影響しない申し送り事項として記録(docs/M3_AUTOSTART.md) |
 | 5 | 上流還元の判断記録 | 選択肢と推奨の提示 → ユーザー決定 → 本表と DESIGN §13 に記録(実施作業があれば完了) | 未実施 — U-02 はユーザー承認が前提のため、このセッションのスコープ外 |
 | 6 | ブリッジ無変更 | `git diff` で bridge/paraview_mcp_bridge.py に変更が無い | PASS(2026-07-22時点)。T-02 で変更したのは server.py の INSTRUCTIONS と bridge_client.py のガイダンス文言のみ。bridge/ 配下は無変更 |
 
