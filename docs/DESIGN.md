@@ -321,7 +321,7 @@ paraview_mcp/
 }
 ```
 
-- 自動起動(GUI 起動時にブリッジも起動)は v1 では提供しない。`paraview --script=` 等の起動オプションの互換性を M3 で調査の上、対応可否を決める。
+- 自動起動(GUI 起動時にブリッジも起動): `paraview --script=<bridge のフルパス>`(または位置引数)で対応済み(v1、README_ja.md)。マクロ登録セグフォ(M0 の既知の限界)の影響は受けないことを実機で確認済み(調査・決定の記録: [M3_AUTOSTART.md](M3_AUTOSTART.md))。`--state` / `--data` / 位置引数のデータファイル指定とは併用不可。
 
 ### 9.3 WSL2 / Windows 混在構成
 

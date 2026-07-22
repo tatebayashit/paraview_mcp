@@ -43,6 +43,14 @@ uv sync
 [paraview-mcp HH:MM:SS] bridge active (first tick fired)
 ```
 
+**自動起動(任意)**: 手順 1〜2 の代わりに、ParaView 起動時に `--script` でブリッジを直接指定できる(実機検証済み。マクロ登録セグフォの影響は受けない。ただし `--state` / `--data` / 位置引数のデータファイル指定とは併用不可):
+
+```shell
+paraview --script /path/to/bridge/paraview_mcp_bridge.py
+# または位置引数でも同じ:
+paraview /path/to/bridge/paraview_mcp_bridge.py
+```
+
 ### 2. MCP クライアント側: サーバーを登録する
 
 Claude Desktop(`claude_desktop_config.json`):
