@@ -2,9 +2,9 @@
 
 [English](README.md) | 日本語
 
-自然言語で ParaView を操作するための MCP(Model Context Protocol)サーバーです。Claude Desktop や Claude Code などの MCP クライアントから、実行中の ParaView に Python コードを送り込み、可視化の作成・操作・スクリーンショットによる確認までを AI に任せることができます。
+自然言語で ParaView を操作するための MCP(Model Context Protocol)サーバーです。Claude Code や Codex などの MCP クライアントから、実行中の ParaView に Python コードを送り込み、可視化の作成・操作・スクリーンショットによる確認までを AI に任せることができます。
 
-本リポジトリは [LLNL/paraview_mcp](https://github.com/LLNL/paraview_mcp) のフォークですが、接続方式を全面的に再設計しています(仕様の正: [docs/DESIGN.md](docs/DESIGN.md))。上流実装が依存していた pvserver のコラボレーション同期機能(現行 ParaView では非推奨・不安定)をやめ、**ParaView 内で動く小さなブリッジへコード文字列を送って実行する**というシンプルな方式に置き換えています。
+本リポジトリは [LLNL/paraview_mcp](https://github.com/LLNL/paraview_mcp) のフォークですが、現行 ParaView では非推奨となっている pvserver のコラボレーション同期機能を廃止し、**ParaView 内へ Python コード文字列を送って実行する**方式に置き換えています。
 
 ## 対応環境
 
@@ -21,13 +21,11 @@ Claude          ◄─ stdio (MCP) ─►  paraview-mcp サーバー  ◄─ TCP
 (Desktop/Code)                     純 Python・paraview 非依存      (NDJSON)          GUI メインスレッドで exec
 ```
 
-- **ブリッジ**([bridge/paraview_mcp_bridge.py](bridge/paraview_mcp_bridge.py)): 単一ファイル・標準ライブラリのみで書かれています。ParaView の組み込み Python 内で動作し、localhost の TCP で受け取ったコードを GUI メインスレッドで実行します。マクロとして一度登録すれば、以後はワンクリックで起動できます。
-- **MCP サーバー**(`paraview-mcp`): 通常の Python 環境で動作し、`paraview` パッケージには依存しません。そのため ParaView とのバージョン整合性の問題が構造的に起こりません。
-- GUI が pvserver に接続している場合は、GUI が張っている既存セッションをそのまま使います。pvserver 側の設定変更や `--multi-clients` は不要です。
+- **ブリッジ**([bridge/paraview_mcp_bridge.py](bridge/paraview_mcp_bridge.py)): ParaView の組み込み Python 内で動作し、localhost の TCP で受け取ったコードを GUI メインスレッドで実行します。
+- **MCP サーバー**(`paraview-mcp`): Python 環境で動作します。
+- GUI が pvserver に接続している場合は、GUI が張っている既存セッションをそのまま使用できます。pvserver 側の設定変更は不要です。
 
 ## インストール
-
-初めての方でもつまずかないよう、順を追って説明します。
 
 ### 1. ParaView を用意する
 
@@ -35,7 +33,7 @@ Claude          ◄─ stdio (MCP) ─►  paraview-mcp サーバー  ◄─ TCP
 
 ### 2. uv をインストールする
 
-このプロジェクトは Python パッケージの管理に [uv](https://docs.astral.sh/uv/) を使っています。uv は Python 本体のインストールから仮想環境の作成、依存パッケージのインストールまで 1 つのコマンドでまとめて面倒を見てくれるツールで、Python の環境構築でよくあるつまずきどころを大きく減らしてくれます。
+このプロジェクトは Python パッケージの管理に [uv](https://docs.astral.sh/uv/) を使っています。uv は Python 本体のインストールから仮想環境の作成、依存パッケージのインストールまで 1 つのコマンドでまとめて面倒を見てくれるツールで、Python の環境構築負荷を軽減できます。
 
 まだ uv をお持ちでない場合は、お使いの OS に応じて以下のいずれかを実行してください。
 
@@ -78,7 +76,7 @@ uv sync
 1. ParaView を起動します(pvserver に接続して使う場合は、先に File → Connect で接続しておいてください)。
 2. ブリッジを起動します。
    - **通常(builtin セッション)の場合**: Macros → Import new macro… で `bridge/paraview_mcp_bridge.py` を登録し、そのマクロを実行します。
-   - **pvserver に接続している場合**: マクロ登録は使わず、`bridge/paraview_mcp_bridge.py` の中身を View → Python Shell に直接貼り付けて実行してください(理由は後述の「既知の制約」をご覧ください)。
+   - **pvserver に接続している場合**: マクロ登録は使わず、`bridge/paraview_mcp_bridge.py` の中身を View → Python Shell に直接貼り付けて実行してください(理由は後述の「注意事項」をご覧ください)。
 3. 次の 2 行が表示されれば成功です(2 行目はタイマー駆動が正しく機能している証拠です)。
 
 ```
@@ -136,8 +134,6 @@ Windows の Claude Desktop から WSL 内のサーバーを使う場合は、後
 
 ## 複数の OS にまたがる構成
 
-ParaView と MCP サーバー、MCP クライアント(Claude Desktop など)をすべて同じ OS 上で動かすのが最もシンプルで、まず試していただきたい構成です。Windows だけ、WSL だけ、Linux だけ、いずれでもそのまま動作します。
-
 OS をまたいで使いたい場合(例: Claude Desktop は Windows、ParaView は WSL 内で動かしたい)も対応可能です。代表的な構成として、**MCP サーバーも ParaView と同じ側(WSL 内)に置き、`wsl.exe` 経由で起動する**方法を動作確認済みです。
 
 ```json
@@ -165,17 +161,17 @@ GUI を使わず、「AI が操作し、人間はスクリーンショットで�
 
 ## セキュリティ上の注意
 
-- 本システムは設計上、**任意コード実行サービス**です。MCP クライアント(LLM)が生成した任意の Python コードが、ParaView プロセスの権限で実行されます。コードの静的検証やサンドボックス化は行っていません。**MCP クライアント側のツール実行承認 UI が最後の防壁である**ことを理解した上でお使いください。
-- ブリッジは 127.0.0.1 にのみバインドします。リモート公開はサポートしていません。
+- 本システムは設計上、任意コードを実行します。MCP クライアント(LLM)が生成した任意の Python コードが、ParaView プロセスの権限で実行されます。コードの静的検証やサンドボックス化は行っていません。ツール実行を承認するときは、十分に内容を確認してください。
+- ブリッジはローカルの 127.0.0.1 にのみ接続します。リモート公開はサポートしていません。
 - 共有マシンでお使いの場合は、`PARAVIEW_MCP_TOKEN` の設定をおすすめします(localhost 上の他プロセスからの接続対策になります)。
 
-## 既知の制約
+## 注意事項
 
 - コード実行中は ParaView の GUI がフリーズします(メインスレッドで実行しているためで、手動で重いフィルタを適用した場合と同じ挙動です)。OS が「応答なし」と表示しても、強制終了しないでください。
 - 実行中のコードをキャンセルすることはできません。
 - ブリッジのタイマーを載せた RenderView を閉じると、ブリッジは停止します。`bridge_status` が再実行を案内しますので、その場合はブリッジを起動し直してください。
 - vtkOutputWindow を通らない出力(vtkLogger 直行のログ、C++ からの stdout/stderr 直書きなど)は `vtk_messages` には捕捉されません(プロセスのコンソールには残ります)。
-- **既知の問題**: pvserver に接続している状態で**マクロ登録経由**でブリッジを起動すると、ParaView がセグメンテーション違反で終了します。変更を加えていない検証用コードでも再現するため、ParaView 側の問題であることを切り分け済みです(詳細: [docs/M1_PLAN.md](docs/M1_PLAN.md) §5 #8)。**回避策**: pvserver に接続している場合は、Python Shell への貼り付けでブリッジを起動してください(builtin セッションではマクロ登録のままで問題ありません)。
+- **バグ**: pvserver に接続している状態で**マクロ登録経由**でブリッジを起動すると、ParaView がセグメンテーション違反で終了します。**回避策**: pvserver に接続している場合は、Python Shell への貼り付けでブリッジを起動してください。
 
 ## 開発
 
@@ -189,11 +185,10 @@ uv run ruff check bridge/ src/ tests/
 - unit CI: [.github/workflows/unit.yml](.github/workflows/unit.yml)(Python 3.10〜3.12)
 - integration CI: [.github/workflows/integration.yml](.github/workflows/integration.yml)(conda-forge の ParaView 6.1.1、Xvfb 経由)
 - 手動スモークテスト: [docs/SMOKE.md](docs/SMOKE.md)
-- ロードマップ([docs/DESIGN.md](docs/DESIGN.md) §13): M0 スパイク **完了** → M1 MVP **完了**(2026-07-19)→ M2 堅牢化 **完了**(2026-07-21、[docs/M2_PLAN.md](docs/M2_PLAN.md))→ M3 UX **完了**(2026-07-22、[docs/M3_PLAN.md](docs/M3_PLAN.md))
 
 ## 上流プロジェクトについて
 
-本リポジトリは LLNL の ParaView-MCP のフォークであり、BSD-3-Clause ライセンスを維持しています([LICENSE](LICENSE) / [NOTICE](NOTICE))。接続方式は全面的に再設計しており独立したフォークとして開発を続けていますが、「MCP で ParaView を操作する」というアイデアの出どころとして、上流のオリジナル実装のデモと論文をここに記しておきます。
+本リポジトリは LLNL の ParaView-MCP のフォークであり、BSD-3-Clause ライセンスを維持しています([LICENSE](LICENSE) / [NOTICE](NOTICE))。
 
 [![Video Title](https://img.youtube.com/vi/GvcBnAcIXp4/maxresdefault.jpg)](https://youtu.be/GvcBnAcIXp4)
 
