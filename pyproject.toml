@@ -44,9 +44,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/tatebayashit/paraview_mcp"
-Repository = "https://github.com/tatebayashit/paraview_mcp"
-Issues = "https://github.com/tatebayashit/paraview_mcp/issues"
+Homepage = "https://github.com/jumpcfd/paraview_mcp"
+Repository = "https://github.com/jumpcfd/paraview_mcp"
+Issues = "https://github.com/jumpcfd/paraview_mcp/issues"
 Upstream = "https://github.com/LLNL/paraview_mcp"
 
 [tool.hatch.build.targets.wheel]

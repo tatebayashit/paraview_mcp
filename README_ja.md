@@ -62,7 +62,7 @@ uv --version
 ### 3. このリポジトリを取得してセットアップする
 
 ```shell
-git clone https://github.com/tatebayashit/paraview_mcp.git
+git clone https://github.com/jumpcfd/paraview_mcp.git
 cd paraview_mcp
 uv sync
 ```

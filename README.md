@@ -62,7 +62,7 @@ If a version number prints, you're set. If something goes wrong, see [uv's own i
 ### 3. Clone this repository and set it up
 
 ```shell
-git clone https://github.com/tatebayashit/paraview_mcp.git
+git clone https://github.com/jumpcfd/paraview_mcp.git
 cd paraview_mcp
 uv sync
 ```
