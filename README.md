@@ -2,9 +2,9 @@
 
 English | [日本語](README_ja.md)
 
-An MCP (Model Context Protocol) server for controlling ParaView with natural language. From an MCP client such as Claude Desktop or Claude Code, you can send Python code to a running ParaView instance and let an AI create visualizations, manipulate the pipeline, and check the result via screenshots.
+An MCP (Model Context Protocol) server for controlling ParaView with natural language. From an MCP client such as Claude Code or Codex, you can send Python code to a running ParaView instance and let an AI create visualizations, manipulate the pipeline, and check the result via screenshots.
 
-This repository is a fork of [LLNL/paraview_mcp](https://github.com/LLNL/paraview_mcp), but the connection layer has been redesigned from the ground up (the authoritative spec is [docs/DESIGN.md](docs/DESIGN.md)). The upstream implementation relied on ParaView's pvserver collaboration-sync feature, which is deprecated and unstable in current ParaView releases. This fork replaces it with a much simpler approach: **send code strings to a small bridge that runs inside ParaView itself.**
+This repository is a fork of [LLNL/paraview_mcp](https://github.com/LLNL/paraview_mcp), but it drops the pvserver collaboration-sync feature (deprecated in current ParaView releases) and replaces it with **sending Python code strings to run inside ParaView itself.**
 
 ## Supported platforms
 
@@ -21,13 +21,11 @@ Claude          ◄─ stdio (MCP) ─►  paraview-mcp server  ◄─ TCP 127.0
 (Desktop/Code)                     pure Python, no paraview dep    (NDJSON)          exec on the GUI main thread
 ```
 
-- **Bridge** ([bridge/paraview_mcp_bridge.py](bridge/paraview_mcp_bridge.py)): a single file using only the standard library. It runs inside ParaView's embedded Python, receives code over a localhost TCP socket, and executes it on the GUI main thread. Register it as a macro once and it's a one-click launch from then on.
-- **MCP server** (`paraview-mcp`): runs in a regular Python environment and does not depend on the `paraview` package at all, so there's no structural version-matching problem with ParaView.
-- If the GUI is already connected to a pvserver, the bridge just uses that existing session -- no pvserver-side configuration or `--multi-clients` needed.
+- **Bridge** ([bridge/paraview_mcp_bridge.py](bridge/paraview_mcp_bridge.py)): runs inside ParaView's embedded Python, receives code over a localhost TCP socket, and executes it on the GUI main thread.
+- **MCP server** (`paraview-mcp`): runs in a Python environment.
+- If the GUI is already connected to a pvserver, it can just use that existing session. No pvserver-side configuration is needed.
 
 ## Installation
-
-A step-by-step guide, written so first-time users don't get stuck.
 
 ### 1. Get ParaView
 
@@ -35,7 +33,7 @@ If you don't already have it, download an installer for your OS from the [offici
 
 ### 2. Install uv
 
-This project manages Python packages with [uv](https://docs.astral.sh/uv/). uv handles everything from installing the right Python version to creating a virtual environment and installing dependencies, in a single command -- it removes most of the usual friction of setting up a Python project.
+This project manages Python packages with [uv](https://docs.astral.sh/uv/). uv handles everything from installing the right Python version to creating a virtual environment and installing dependencies, in a single command, which cuts down a lot of the usual Python setup friction.
 
 If you don't have uv yet, run one of the following depending on your OS.
 
@@ -78,7 +76,7 @@ uv sync
 1. Start ParaView (if you'll be using pvserver, connect to it first via File → Connect).
 2. Start the bridge:
    - **Builtin session (the common case)**: Macros → Import new macro… to register `bridge/paraview_mcp_bridge.py`, then run that macro.
-   - **Connected to pvserver**: don't register it as a macro -- instead, paste the contents of `bridge/paraview_mcp_bridge.py` directly into View → Python Shell and run it (see "Known limitations" below for why).
+   - **Connected to pvserver**: don't register it as a macro -- instead, paste the contents of `bridge/paraview_mcp_bridge.py` directly into View → Python Shell and run it (see "Notes" below for why).
 3. Success looks like these two lines (the second one confirms the timer-driven loop is actually running):
 
 ```
@@ -136,9 +134,7 @@ If you're running Claude Desktop on Windows against a server inside WSL, see [Mi
 
 ## Mixing OSes
 
-Running ParaView, the MCP server, and the MCP client (e.g. Claude Desktop) all on the same OS is the simplest setup, and the one to try first -- Windows-only, WSL-only, and Linux-only all work as-is.
-
-Mixing OSes is also supported. For example, if you want Claude Desktop on Windows talking to ParaView running inside WSL, the setup we've verified is to **run the MCP server on the same side as ParaView (inside WSL) and launch it via `wsl.exe`**:
+Mixing OSes is supported. For example, if you want Claude Desktop on Windows talking to ParaView running inside WSL, the setup we've verified is to **run the MCP server on the same side as ParaView (inside WSL) and launch it via `wsl.exe`**:
 
 ```json
 "mcpServers": {
@@ -165,17 +161,17 @@ A minimal setup where the AI drives ParaView with no GUI, and a human checks res
 
 ## Security notes
 
-- By design, this is an **arbitrary code execution service**. Whatever Python code the MCP client (an LLM) generates runs with the ParaView process's own privileges. There's no static analysis or sandboxing of the code. **The MCP client's own tool-call approval UI is the last line of defense** -- understand that before using this.
-- The bridge only binds to 127.0.0.1. Remote exposure is not supported.
+- By design, this system executes arbitrary code. Whatever Python code the MCP client (an LLM) generates runs with the ParaView process's own privileges. There's no static analysis or sandboxing of the code. Review tool calls carefully before approving them.
+- The bridge listens only on 127.0.0.1. Remote exposure is not supported.
 - On a shared machine, we recommend setting `PARAVIEW_MCP_TOKEN` (it guards against other local processes connecting to the bridge).
 
-## Known limitations
+## Notes
 
 - ParaView's GUI freezes while code is executing (it runs on the main thread, the same as manually applying a heavy filter). Don't force-quit just because the OS reports "Not Responding."
 - There's no way to cancel code that's already running.
 - Closing the RenderView that's hosting the bridge's timer stops the bridge. `bridge_status` will guide you to restart it when that happens.
 - Output that bypasses vtkOutputWindow (vtkLogger output, or C++ writing straight to stdout/stderr) isn't captured in `vtk_messages` (it still shows up in the process's own console).
-- **Known issue**: starting the bridge **via a registered macro** while connected to pvserver crashes ParaView with a segmentation fault. This reproduces even with unmodified verification code, so it's been isolated as a ParaView-side issue rather than something in this project (details: [docs/M1_PLAN.md](docs/M1_PLAN.md) §5 #8). **Workaround**: when connected to pvserver, start the bridge by pasting it into the Python Shell instead (macro registration is fine for builtin sessions).
+- **Bug**: starting the bridge via a registered macro while connected to pvserver crashes ParaView with a segmentation fault. **Workaround**: when connected to pvserver, start the bridge by pasting it into the Python Shell instead.
 
 ## Development
 
@@ -189,11 +185,10 @@ uv run ruff check bridge/ src/ tests/
 - unit CI: [.github/workflows/unit.yml](.github/workflows/unit.yml) (Python 3.10-3.12)
 - integration CI: [.github/workflows/integration.yml](.github/workflows/integration.yml) (ParaView 6.1.1 from conda-forge, via Xvfb)
 - manual smoke test: [docs/SMOKE.md](docs/SMOKE.md)
-- roadmap ([docs/DESIGN.md](docs/DESIGN.md) §13): M0 spike **done** → M1 MVP **done** (2026-07-19) → M2 hardening **done** (2026-07-21, [docs/M2_PLAN.md](docs/M2_PLAN.md)) → M3 UX **done** (2026-07-22, [docs/M3_PLAN.md](docs/M3_PLAN.md))
 
 ## About the upstream project
 
-This repository is a fork of LLNL's ParaView-MCP and keeps its BSD-3-Clause license ([LICENSE](LICENSE) / [NOTICE](NOTICE)). The connection layer has been redesigned from scratch and this fork is developed independently, but the core idea -- controlling ParaView through MCP -- traces back to the original upstream work, so the demo and paper are credited here.
+This repository is a fork of LLNL's ParaView-MCP and keeps its BSD-3-Clause license ([LICENSE](LICENSE) / [NOTICE](NOTICE)).
 
 [![Video Title](https://img.youtube.com/vi/GvcBnAcIXp4/maxresdefault.jpg)](https://youtu.be/GvcBnAcIXp4)
 
