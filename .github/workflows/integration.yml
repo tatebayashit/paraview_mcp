@@ -25,7 +25,11 @@ jobs:
           create-args: >-
             python=3.12
             paraview=6.1.1
-          channels: conda-forge
+            hdf5=1.14.6
+          # hdf5 pin (2026-08-23): vtk-base 9.6.2 build 7 gained an hdf5 2.2
+          # variant, but paraview 6.1.1 _2 was built against hdf5 1.14 and
+          # doesn't pin it, so an unpinned solve breaks pvpython
+          # (libhdf5.so.310 missing). Drop once paraview is rebuilt on hdf5 2.x.
           cache-environment: true  # CI-04: cache across runs
 
       - name: Install uv
