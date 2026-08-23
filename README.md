@@ -159,6 +159,16 @@ pvpython --force-offscreen-rendering bridge/paraview_mcp_bridge.py --standalone 
 
 A minimal setup where the AI drives ParaView with no GUI, and a human checks results via screenshots. CI uses this mode too.
 
+## Skill for Claude Code (optional)
+
+[skills/paraview/SKILL.md](skills/paraview/SKILL.md) tells an agent *when* to reach for this server (any time it needs numbers or arrays out of OpenFOAM/VTK/EXODUS/... data, not just pictures) and *how* (starting a headless ParaView itself, probing, line sampling, patch integrals, mesh statistics, export). Install it at user scope so it is active in every project:
+
+```shell
+ln -s "$(pwd)/skills/paraview" ~/.claude/skills/paraview   # or cp -r, e.g. on Windows
+```
+
+`uv run python skills/paraview/check_recipes.py /path/to/case.foam` re-runs every code block in the skill against a running bridge (useful after a ParaView upgrade; it needs an OpenFOAM case with `U`, `p`, and a `movingWall` patch, i.e. any cavity tutorial).
+
 ## Security notes
 
 - By design, this system executes arbitrary code. Whatever Python code the MCP client (an LLM) generates runs with the ParaView process's own privileges. There's no static analysis or sandboxing of the code. Review tool calls carefully before approving them.

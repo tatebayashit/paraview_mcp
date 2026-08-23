@@ -159,6 +159,16 @@ pvpython --force-offscreen-rendering bridge/paraview_mcp_bridge.py --standalone 
 
 GUI を使わず、「AI が操作し、人間はスクリーンショットで確認する」という最小構成です。CI でもこのモードを使っています。
 
+## Claude Code 用スキル(任意)
+
+[skills/paraview/SKILL.md](skills/paraview/SKILL.md) は、エージェントに「いつ」このサーバーを使うか(絵が欲しいときだけでなく、OpenFOAM / VTK / EXODUS などのデータから数値や配列が要るとき全般)と、「どう」使うか(ヘッドレスの ParaView を自分で起動する手順、点の probe、線上サンプリング、パッチ上の積分、メッシュ統計、書き出し)を伝えるものです。ユーザースコープに置くと、どのプロジェクトでも有効になります。
+
+```shell
+ln -s "$(pwd)/skills/paraview" ~/.claude/skills/paraview   # Windows などでは cp -r でも可
+```
+
+`uv run python skills/paraview/check_recipes.py /path/to/case.foam` で、スキル内の全コードブロックを起動中のブリッジに対して再実行できます(ParaView を更新したときの確認用。`U`・`p` と `movingWall` パッチを持つ OpenFOAM ケース、つまり cavity チュートリアル相当が必要です)。
+
 ## セキュリティ上の注意
 
 - 本システムは設計上、任意コードを実行します。MCP クライアント(LLM)が生成した任意の Python コードが、ParaView プロセスの権限で実行されます。コードの静的検証やサンドボックス化は行っていません。ツール実行を承認するときは、十分に内容を確認してください。
